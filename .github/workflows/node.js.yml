@@ -16,6 +16,7 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x, 16.x]
+        npm-dist-tag: [latest, beta]
 
     steps:
       - uses: actions/checkout@v2
@@ -23,5 +24,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: ./setup.sh
+      - name: Setup dependencies for ${{ matrix.npm-dist-tag }}
+        env:
+          NPM_DIST_TAG: ${{ matrix.npm-dist-tag }}
+        run: ./setup.sh
+
       - run: node index.js
