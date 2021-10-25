@@ -8,6 +8,7 @@ npm --version
 npm install @superfaceai/cli @superfaceai/one-sdk
 
 npm list
+npx superface --version
 
 npx superface install weather/current-city
 npx superface configure wttr-in --profile=weather/current-city
