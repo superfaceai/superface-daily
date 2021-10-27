@@ -5,7 +5,7 @@ set -xeuo pipefail
 node --version
 npm --version
 
-npm install @superfaceai/cli@0.0.27-beta.0 @superfaceai/one-sdk@0.0.41-beta.0
+npm install @superfaceai/cli@beta @superfaceai/one-sdk@0.0.41-beta.0
 
 npm list
 npx superface --version
