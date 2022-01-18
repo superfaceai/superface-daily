@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 const { SuperfaceClient } = require('@superfaceai/one-sdk');
 
 const sdk = new SuperfaceClient();
@@ -22,8 +21,9 @@ async function run() {
   } catch (e) {
     console.error('Error performing weather/current-city');
     console.error(e);
-    return;
+    process.end(1);
   }
 }
 
 run();
+

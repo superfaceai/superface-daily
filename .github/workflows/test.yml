@@ -1,0 +1,39 @@
+name: Daily Test
+
+on:
+  push:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [on-demand-test]
+  schedule:
+    - cron: '10 7 * * *'
+
+jobs:
+  daily_test:
+    name: Run Daily test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 17.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Node.js & NPM Version
+        run: |
+          node --version
+          npm --version
+      - name: Install CLI & OneSDK
+        run: npm install @superfaceai/cli @superfaceai/one-sdk
+      - name: CLI Version
+        run: npx superface --version
+      - name: Install weather/current-city with wttr-in provider
+        run: |
+          npx superface install weather/current-city
+          npx superface configure wttr-in --profile=weather/current-city
+      - name: Perform
+        run: node index.js
