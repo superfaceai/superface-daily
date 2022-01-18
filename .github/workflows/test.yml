@@ -36,4 +36,13 @@ jobs:
           npx superface install weather/current-city
           npx superface configure wttr-in --profile=weather/current-city
       - name: Perform
+        id: perform
         run: node index.js
+      - name: Post to a Slack channel
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily test failed\nTrigger event: ${{ github.event_name }}\nNode.js version: ${{ matrix.node-version }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

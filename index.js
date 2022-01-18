@@ -21,9 +21,8 @@ async function run() {
   } catch (e) {
     console.error('Error performing weather/current-city');
     console.error(e);
-    process.end(1);
+    process.exit(1);
   }
 }
 
 run();
-
