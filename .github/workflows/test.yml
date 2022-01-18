@@ -1,0 +1,49 @@
+name: Daily Test
+
+on:
+  push:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [on-demand-test]
+  schedule:
+    - cron: '10 7 * * *'
+
+jobs:
+  daily_test:
+    name: Run Daily test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [14.x, 16.x, 17.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Node.js & NPM Version
+        run: |
+          node --version
+          npm --version
+      - name: Install CLI & OneSDK
+        run: npm install @superfaceai/cli @superfaceai/one-sdk
+      - name: CLI Version
+        run: npx superface --version
+      - name: Install weather/current-city with wttr-in provider
+        run: |
+          npx superface install weather/current-city
+          npx superface configure wttr-in --profile=weather/current-city
+      - name: Perform
+        id: perform
+        run: node index.js
+      - name: Post to a Slack channel
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily test failed\nTrigger event: ${{ github.event_name }}\nNode.js version: ${{ matrix.node-version }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
