@@ -1,0 +1,38 @@
+name: Daily Test
+on:
+  push:
+  #workflow_dispatch:
+  # repository_dispatch:
+  #   types: [on-demand-test]
+  # schedule:
+  #   - cron: '10 7 * * *'
+
+env:
+  SUPERFACE_ONESDK_TOKEN: ${{ secrets.SUPERFACE_ONESDK_TOKEN }}
+
+jobs:
+  nodejs_linux:
+    name: Node.js Linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Node.js & NPM Version
+        working-directory: javascript
+        run: |
+          node --version
+          npm --version
+      - name: Install Dependencies
+        working-directory: javascript
+        run: npm install
+      - name: Perform
+        working-directory: javascript
+        run: node --experimental-wasi-unstable-preview1 --no-warnings index.mjs
+      
