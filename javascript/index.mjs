@@ -43,14 +43,8 @@ try {
   console.log('RESULT:', result);
   process.exit(0);
 } catch (e) {
-  if (e instanceof PerformError) {
-    console.log('ERROR RESULT:', e.errorResult);
-  } else if (e instanceof UnexpectedError) {
-    console.error('ERROR:', e);
-  } else {
-    console.log('FAILED:', e);
-    process.exit(1);
-  }
+  console.error('ERROR:', e);
+  process.exit(1);
 } finally {
   server.close();
 }
