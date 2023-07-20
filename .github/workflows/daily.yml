@@ -23,6 +23,36 @@ jobs:
         run: brew install superfaceai/cli/superface
       - run: superface --version
       - run: superface whoami
+      - run: superface prepare https://developers.notion.com/reference
+      - name: Manually update provider
+        run: |
+          echo '{
+            "name": "notion",
+            "defaultService": "default",
+            "services": [
+              {
+                "id": "default",
+                "baseUrl": "https://api.notion.com"
+              }
+            ],
+            "securitySchemes": [],
+            "parameters": []
+          }' > superface/notion.provider.json
+      - run: superface new notion "List all users"
+      - run: superface map notion notion-workspace-management/user-retrieval
+      - run: superface map notion notion-workspace-management/user-retrieval python
+      - run: ls superface
+      - name: Upload superface folder
+        uses: actions/upload-artifact@v3
+        with:
+          name: superface-folder
+          path: | 
+            superface/*.profile
+            superface/*.map.js
+            superface/*.mjs
+            superface/*.py
+            superface/package.json
+            superface/requirements.txt
 
   perform_nodejs:
     name: Perform Node.js 
