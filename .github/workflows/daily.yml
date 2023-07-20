@@ -9,10 +9,23 @@ on:
 
 env:
   SUPERFACE_ONESDK_TOKEN: ${{ secrets.SUPERFACE_ONESDK_TOKEN }}
+  SUPERFACE_REFRESH_TOKEN: ${{ secrets.SUPERFACE_REFRESH_TOKEN }}
 
 jobs:
-  nodejs_linux:
-    name: Node.js Linux
+  cli:
+    name: CLI MacOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Homebrew
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - name: Install Superface CLI
+        run: brew install superfaceai/cli/superface
+      - run: superface --version
+      - run: superface whoami
+
+  perform_nodejs_linux:
+    name: Perform Node.js Linux
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,8 +45,8 @@ jobs:
       - name: Perform
         run: node --experimental-wasi-unstable-preview1 --no-warnings index.mjs
 
-  nodejs_windows:
-    name: Node.js Windows
+  perform_nodejs_windows:
+    name: Perform Node.js Windows
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -53,8 +66,8 @@ jobs:
       - name: Perform
         run: node --experimental-wasi-unstable-preview1 --no-warnings index.mjs
       
-  python_linux:
-    name: Python Linux
+  perform_python_linux:
+    name: Perform Python Linux
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,8 +83,8 @@ jobs:
       - name: Perform
         run: python main.py
 
-  python_windows:
-    name: Python Windows
+  perform_python_windows:
+    name: Perform Python Windows
     runs-on: windows-latest
     defaults:
       run:
