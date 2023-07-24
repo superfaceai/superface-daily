@@ -1,20 +1,23 @@
 name: Daily Test
 on:
   push:
-  #workflow_dispatch:
-  # repository_dispatch:
-  #   types: [on-demand-test]
-  # schedule:
-  #   - cron: '10 7 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [on-demand-test]
+  schedule:
+    - cron: '10 7 * * *'
 
 env:
   SUPERFACE_ONESDK_TOKEN: ${{ secrets.SUPERFACE_ONESDK_TOKEN }}
   SUPERFACE_REFRESH_TOKEN: ${{ secrets.SUPERFACE_REFRESH_TOKEN }}
 
 jobs:
-  cli:
-    name: CLI MacOS
+  create_integration:
+    name: Create integration
     runs-on: macos-latest
+    outputs:
+      PROFILE_ID: ${{ steps.profile_id.outputs.PROFILE_ID }}
+      PROFILE_FILENAME: ${{ steps.profile_filename.outputs.PROFILE_FILENAME }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Homebrew
@@ -35,13 +38,26 @@ jobs:
                 "baseUrl": "https://api.notion.com"
               }
             ],
-            "securitySchemes": [],
+            "securitySchemes": [
+              {
+                "id": "bearer",
+                "type": "http",
+                "scheme": "bearer"
+              }
+            ],
             "parameters": []
           }' > superface/notion.provider.json
       - run: superface new notion "List all users"
-      - run: superface map notion notion-workspace-management/user-retrieval
-      - run: superface map notion notion-workspace-management/user-retrieval python
-      - run: ls superface
+      - run: echo PROFILE_ID=$(ls superface/*.profile | sed 's/.*\///; s/\.profile$//; s/\./\//') >>$GITHUB_OUTPUT
+        id: profile_id
+      - run: echo PROFILE_FILENAME=$(ls superface/*.profile | sed 's/.*\///; s/\.profile$//') >>$GITHUB_OUTPUT
+        id: profile_filename
+      - run: superface map notion ${{ steps.profile_id.outputs.PROFILE_ID }}
+      - run: superface map notion ${{ steps.profile_id.outputs.PROFILE_ID }} python
+      - run: |
+          sed -i -s "s/assetsPath.*/assetsPath: '\.'/" superface/*.mjs
+      - run: |
+          sed -i -s 's/assets_path.*/assets_path = "\."/' superface/*.py
       - name: Upload superface folder
         uses: actions/upload-artifact@v3
         with:
@@ -49,6 +65,7 @@ jobs:
           path: | 
             superface/*.profile
             superface/*.map.js
+            superface/*.provider.json
             superface/*.mjs
             superface/*.py
             superface/package.json
@@ -56,43 +73,56 @@ jobs:
 
   perform_nodejs:
     name: Perform Node.js 
+    needs: [create_integration]
     strategy:
       fail-fast: false
       matrix:
         node-version: [18, 20]
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: javascript
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_SECRET }}
     steps:
-      - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Download superface folder
+        uses: actions/download-artifact@v3
+        with:
+          name: superface-folder
+          path: superface
       - name: Install Dependencies
+        working-directory: superface
         run: npm install
       - name: Perform
-        run: node --experimental-wasi-unstable-preview1 --no-warnings index.mjs
+        working-directory: superface
+        run: node --experimental-wasi-unstable-preview1 --no-warnings ${{ needs.create_integration.outputs.PROFILE_FILENAME }}.notion.mjs
       
   perform_python:
     name: Perform Python
+    needs: [create_integration]
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: python
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_SECRET }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.8"
+      - name: Download superface folder
+        uses: actions/download-artifact@v3
+        with:
+          name: superface-folder
+          path: superface
       - name: Install dependencies and package locally
+        working-directory: superface
         run: python -m pip install -r requirements.txt
       - name: Perform
-        run: python main.py
+        working-directory: superface
+        run: python ${{ needs.create_integration.outputs.PROFILE_FILENAME }}.notion.py
