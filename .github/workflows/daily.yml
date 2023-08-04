@@ -47,9 +47,6 @@ jobs:
   create_integration:
     name: Create integration on MacOS
     runs-on: macos-latest
-    outputs:
-      PROFILE_ID: ${{ steps.profile_id.outputs.PROFILE_ID }}
-      PROFILE_FILENAME: ${{ steps.profile_filename.outputs.PROFILE_FILENAME }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Homebrew
@@ -58,34 +55,30 @@ jobs:
         run: brew install superfaceai/cli/superface
       - run: superface --version
       - run: superface whoami
-      - run: superface prepare https://developers.notion.com/reference
+      - run: superface prepare https://github.com/lob/lob-openapi/blob/main/lob-api-public.yml lob
       - name: Manually update provider
         run: |
           echo '{
-            "name": "notion",
+            "name": "lob",
             "defaultService": "default",
             "services": [
               {
                 "id": "default",
-                "baseUrl": "https://api.notion.com"
+                "baseUrl": "https://api.lob.com"
               }
             ],
             "securitySchemes": [
               {
-                "id": "bearer",
+                "id": "lobBasicAuth",
                 "type": "http",
-                "scheme": "bearer"
+                "scheme": "basic"
               }
             ],
             "parameters": []
-          }' > superface/notion.provider.json
-      - run: superface new notion "List all users"
-      - run: echo PROFILE_ID=$(ls superface/*.profile | sed 's/.*\///; s/\.profile$//; s/\./\//') >>$GITHUB_OUTPUT
-        id: profile_id
-      - run: echo PROFILE_FILENAME=$(ls superface/*.profile | sed 's/.*\///; s/\.profile$//') >>$GITHUB_OUTPUT
-        id: profile_filename
-      - run: superface map notion ${{ steps.profile_id.outputs.PROFILE_ID }}
-      - run: superface map notion ${{ steps.profile_id.outputs.PROFILE_ID }} python
+          }' > superface/lob.provider.json
+      - run: superface new lob "add a new address" address-management/new-address
+      - run: superface map lob address-management/new-address
+      - run: superface map lob address-management/new-address python
       - run: |
           sed -i -s "s/assetsPath.*/assetsPath: '\.'/" superface/*.mjs
       - run: |
@@ -113,7 +106,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      NOTION_TOKEN: ${{ secrets.NOTION_SECRET }}
+      LOB_TOKEN: ${{ secrets.LOB_TOKEN }}
     steps:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -129,7 +122,7 @@ jobs:
         run: npm install
       - name: Perform
         working-directory: superface
-        run: node --experimental-wasi-unstable-preview1 --no-warnings ${{ needs.create_integration.outputs.PROFILE_FILENAME }}.notion.mjs
+        run: node --experimental-wasi-unstable-preview1 --no-warnings address-management.new-address.lob.mjs
       
   perform_python:
     name: Perform Python
@@ -140,7 +133,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      NOTION_TOKEN: ${{ secrets.NOTION_SECRET }}
+      LOB_TOKEN: ${{ secrets.LOB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -157,4 +150,4 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Perform
         working-directory: superface
-        run: python ${{ needs.create_integration.outputs.PROFILE_FILENAME }}.notion.py
+        run: python address-management.new-address.lob.py
