@@ -12,8 +12,32 @@ env:
   SUPERFACE_REFRESH_TOKEN: ${{ secrets.SUPERFACE_REFRESH_TOKEN }}
 
 jobs:
+  install_cli_linux: 
+    name: Install CLI on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Homebrew
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - name: Install Superface CLI
+        run: brew install superfaceai/cli/superface
+      - run: superface --version
+      - run: superface whoami
+
+  install_cli_windows:
+    name: Install CLI on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Use Node.js latest
+        uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Install Superface CLI
+        run: npm install -g @superfaceai/cli@latest
+      - run: superface --version
+      - run: superface whoami
+    
   create_integration:
-    name: Create integration
+    name: Create integration on MacOS
     runs-on: macos-latest
     outputs:
       PROFILE_ID: ${{ steps.profile_id.outputs.PROFILE_ID }}
