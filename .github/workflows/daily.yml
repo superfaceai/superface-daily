@@ -148,6 +148,11 @@ jobs:
       - name: Perform
         working-directory: superface
         run: node --experimental-wasi-unstable-preview1 --no-warnings address-management.new-address.lob.mjs | tee result.txt
+      - name: Upload devlog dumps
+        uses: actions/upload-artifact@v3
+        with:
+          name: javascript_devlog_dumps
+          path: superface/onesdk_devlog_dump*
       - name: Check result
         working-directory: superface
         if: ${{ matrix.os == 'windows-latest' }}
@@ -193,6 +198,11 @@ jobs:
       - name: Perform
         working-directory: superface
         run: python address-management.new-address.lob.py | tee result.txt
+      - name: Upload devlog dumps
+        uses: actions/upload-artifact@v3
+        with:
+          name: python_devlog_dumps
+          path: superface/onesdk_devlog_dump*
       - name: Check result
         working-directory: superface
         if: ${{ matrix.os == 'windows-latest' }}
