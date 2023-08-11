@@ -30,6 +30,14 @@ jobs:
           brew install superfaceai/cli/superface
       - run: superface --version
       - run: superface whoami
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Install CLI on Linux Failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   install_cli_windows:
     name: Install CLI on Windows
@@ -43,6 +51,14 @@ jobs:
         run: npm install -g @superfaceai/cli@latest
       - run: superface --version
       - run: superface whoami
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Install CLI on Windows Failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     
   create_integration:
     name: Create integration on MacOS
@@ -95,6 +111,14 @@ jobs:
             superface/*.py
             superface/package.json
             superface/requirements.txt
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Install CLI on Linux Failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   perform_nodejs:
     name: Perform Node.js 
@@ -106,7 +130,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      LOB_TOKEN: ${{ secrets.LOB_TOKEN }}
+      LOB_USERNAME: ${{ secrets.LOB_TOKEN }}
+      LOB_PASSWORD: ""
     steps:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -122,7 +147,23 @@ jobs:
         run: npm install
       - name: Perform
         working-directory: superface
-        run: node --experimental-wasi-unstable-preview1 --no-warnings address-management.new-address.lob.mjs
+        run: node --experimental-wasi-unstable-preview1 --no-warnings address-management.new-address.lob.mjs | tee result.txt
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: if (Get-Content result.txt | Select-String -Pattern "ERROR:") { exit 1 } else { exit 0 }
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Perform failed\nNode.js version: ${{ matrix.node-version }}\nOS: ${{ matrix.os }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
       
   perform_python:
     name: Perform Python
@@ -133,7 +174,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      LOB_TOKEN: ${{ secrets.LOB_TOKEN }}
+      LOB_USERNAME: ${{ secrets.LOB_TOKEN }}
+      LOB_PASSWORD: ""
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -150,4 +192,20 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Perform
         working-directory: superface
-        run: python address-management.new-address.lob.py
+        run: python address-management.new-address.lob.py | tee result.txt
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: if (Get-Content result.txt | Select-String -Pattern "ERROR:") { exit 1 } else { exit 0 }
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Perform failed\nPython\nOS: ${{ matrix.os }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
