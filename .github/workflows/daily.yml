@@ -176,6 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        python-version: ["3.8", "3.11"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
@@ -186,7 +187,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: ${{ matrix.python-version }}
       - name: Download superface folder
         uses: actions/download-artifact@v3
         with:
