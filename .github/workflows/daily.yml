@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: latest
       - name: Install Superface CLI
-        run: npm install -g @superfaceai/cli@latest
+        run: npm install --global @superfaceai/cli@latest
       - run: superface --version
       - run: superface whoami
       - name: Report to Slack
@@ -142,12 +142,14 @@ jobs:
         with:
           name: superface-folder
           path: superface
+      - name: Install Superface CLI
+        run: npm install --global @superfaceai/cli@latest
       - name: Install Dependencies
         working-directory: superface
         run: npm install
       - name: Perform
         working-directory: superface
-        run: node --experimental-wasi-unstable-preview1 --no-warnings address-management.new-address.lob.mjs | tee result.txt
+        run: superface execute lob address-management/new-address | tee result.txt
       - name: Upload devlog dumps
         uses: actions/upload-artifact@v3
         with:
@@ -193,12 +195,14 @@ jobs:
         with:
           name: superface-folder
           path: superface
+      - name: Install Superface CLI
+        run: npm install --global @superfaceai/cli@latest
       - name: Install dependencies and package locally
         working-directory: superface
         run: python -m pip install -r requirements.txt
       - name: Perform
         working-directory: superface
-        run: python address-management.new-address.lob.py | tee result.txt
+        run: superface execute lob address-management/new-address python | tee result.txt
       - name: Upload devlog dumps
         uses: actions/upload-artifact@v3
         with:
