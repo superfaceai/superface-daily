@@ -1,0 +1,232 @@
+name: Daily Test
+on:
+  push:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [on-demand-test]
+  schedule:
+    - cron: '10 7 * * *'
+
+env:
+  SUPERFACE_ONESDK_TOKEN: ${{ secrets.SUPERFACE_ONESDK_TOKEN }}
+  SUPERFACE_REFRESH_TOKEN: ${{ secrets.SUPERFACE_REFRESH_TOKEN }}
+
+jobs:
+  install_cli_linux: 
+    name: Install CLI on Linux
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: /usr/bin/bash -leo pipefail {0}
+    steps:
+      - name: Install Homebrew
+        run: | 
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> ~/.bash_profile
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          sudo apt-get install build-essential
+      - name: Install Superface CLI
+        run:
+          brew install superfaceai/cli/superface
+      - run: superface --version
+      - run: superface whoami
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Install CLI on Linux Failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  install_cli_windows:
+    name: Install CLI on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Use Node.js latest
+        uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Install Superface CLI
+        run: npm install --global @superfaceai/cli@latest
+      - run: superface --version
+      - run: superface whoami
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Install CLI on Windows Failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    
+  create_integration:
+    name: Create integration on MacOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Homebrew
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - name: Install Superface CLI
+        run: brew install superfaceai/cli/superface
+      - run: superface --version
+      - run: superface whoami
+      - run: superface prepare https://github.com/lob/lob-openapi/blob/main/lob-api-public.yml lob
+      - name: Manually update provider
+        run: |
+          echo '{
+            "name": "lob",
+            "defaultService": "default",
+            "services": [
+              {
+                "id": "default",
+                "baseUrl": "https://api.lob.com"
+              }
+            ],
+            "securitySchemes": [
+              {
+                "id": "lobBasicAuth",
+                "type": "http",
+                "scheme": "basic"
+              }
+            ],
+            "parameters": []
+          }' > superface/lob.provider.json
+      - run: superface new lob "add a new address" address-management/new-address
+      - run: superface map lob address-management/new-address
+      - run: superface map lob address-management/new-address python
+      - run: |
+          sed -i -s "s/assetsPath.*/assetsPath: '\.'/" superface/*.mjs
+      - run: |
+          sed -i -s 's/assets_path.*/assets_path = "\."/' superface/*.py
+      - name: Upload superface folder
+        uses: actions/upload-artifact@v3
+        with:
+          name: superface-folder
+          path: | 
+            superface/*.profile
+            superface/*.map.js
+            superface/*.provider.json
+            superface/*.mjs
+            superface/*.py
+            superface/package.json
+            superface/requirements.txt
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Creating integration failed"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  perform_nodejs:
+    name: Perform Node.js 
+    needs: [create_integration]
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      LOB_USERNAME: ${{ secrets.LOB_TOKEN }}
+      LOB_PASSWORD: ""
+    steps:
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Download superface folder
+        uses: actions/download-artifact@v3
+        with:
+          name: superface-folder
+          path: superface
+      - name: Install Superface CLI
+        run: npm install --global @superfaceai/cli@latest
+      - name: Install Dependencies
+        working-directory: superface
+        run: npm install
+      - name: Perform
+        working-directory: superface
+        run: superface execute lob address-management/new-address | tee result.txt
+      - name: Upload devlog dumps
+        uses: actions/upload-artifact@v3
+        with:
+          name: javascript_devlog_dumps
+          path: superface/onesdk_devlog_dump*
+          if-no-files-found: ignore
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: if (Get-Content result.txt | Select-String -Pattern "ERROR:") { exit 1 } else { exit 0 }
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: | 
+          set -eo pipefail
+          if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Perform failed\nNode.js version: ${{ matrix.node-version }}\nOS: ${{ matrix.os }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      
+  perform_python:
+    name: Perform Python
+    needs: [create_integration]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.11"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      LOB_USERNAME: ${{ secrets.LOB_TOKEN }}
+      LOB_PASSWORD: ""
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Download superface folder
+        uses: actions/download-artifact@v3
+        with:
+          name: superface-folder
+          path: superface
+      - name: Install Superface CLI
+        run: npm install --global @superfaceai/cli@latest
+      - name: Install dependencies and package locally
+        working-directory: superface
+        run: python -m pip install -r requirements.txt
+      - name: Perform
+        working-directory: superface
+        run: superface execute lob address-management/new-address python | tee result.txt
+      - name: Upload devlog dumps
+        uses: actions/upload-artifact@v3
+        with:
+          name: python_devlog_dumps
+          path: superface/onesdk_devlog_dump*
+          if-no-files-found: ignore
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: if (Get-Content result.txt | Select-String -Pattern "ERROR:") { exit 1 } else { exit 0 }
+      - name: Check result
+        working-directory: superface
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: | 
+          set -eo pipefail
+          if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+      - name: Report to Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Superface Daily: Perform failed\nPython\nOS: ${{ matrix.os }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
