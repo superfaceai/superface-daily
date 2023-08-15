@@ -162,7 +162,9 @@ jobs:
       - name: Check result
         working-directory: superface
         if: ${{ matrix.os != 'windows-latest' }}
-        run: if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+        run: | 
+          set -eo pipefail
+          if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
       - name: Report to Slack
         if: failure()
         uses: slackapi/slack-github-action@v1
@@ -215,7 +217,9 @@ jobs:
       - name: Check result
         working-directory: superface
         if: ${{ matrix.os != 'windows-latest' }}
-        run: if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
+        run: | 
+          set -eo pipefail
+          if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
       - name: Report to Slack
         if: failure()
         uses: slackapi/slack-github-action@v1
