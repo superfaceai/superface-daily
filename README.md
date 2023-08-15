@@ -4,8 +4,11 @@ Daily test to verify minimal Superface functionality.
 
 ## What is tested
 
-Profile installation, provider configuration and performing use case with Latest versions.
-And in Node,js v14, 16 and 17.
+Entire flow from clean system to performing created integration.
+
+Integration is created on MacOS and then performed on MacOS, Linux and Windows.
+
+Perform is tested for Python (3.8 and 3.11) and Node.js (18, 20).
 
 ## Triggers
 
@@ -23,3 +26,4 @@ And in Node,js v14, 16 and 17.
 - `SLACK_BOT_TOKEN` - to allow posting notification to slack channel
 - `SUPERFACE_REFRESH_TOKEN` - to have authenticated user while isntalling profiles
 - `SUPERFACE_SDK_TOKEN` - to report performs to Superface Dashboard
+- `LOB_TOKEN` - To access integration API
