@@ -116,7 +116,7 @@ jobs:
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
-          slack-message: "Superface Daily: Install CLI on Linux Failed"
+          slack-message: "Superface Daily: Creating integration failed"
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
