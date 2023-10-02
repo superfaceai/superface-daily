@@ -11,6 +11,7 @@ env:
   SUPERFACE_ONESDK_TOKEN: ${{ secrets.SUPERFACE_ONESDK_TOKEN }}
   SUPERFACE_REFRESH_TOKEN: ${{ secrets.SUPERFACE_REFRESH_TOKEN }}
   HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  ALLOW_SLACK_NOTIFICATIONS: 1
 
 jobs:
   install_cli_linux: 
@@ -32,7 +33,7 @@ jobs:
       - run: superface --version
       - run: superface whoami
       - name: Report to Slack
-        if: failure()
+        if: ${{ failure() && env.ALLOW_SLACK_NOTIFICATIONS == 1 }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
@@ -53,7 +54,7 @@ jobs:
       - run: superface --version
       - run: superface whoami
       - name: Report to Slack
-        if: failure()
+        if: ${{ failure() && env.ALLOW_SLACK_NOTIFICATIONS == 1 }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
@@ -116,7 +117,7 @@ jobs:
             superface/package.json
             superface/requirements.txt
       - name: Report to Slack
-        if: failure()
+        if: ${{ failure() && env.ALLOW_SLACK_NOTIFICATIONS == 1 }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
@@ -171,7 +172,7 @@ jobs:
           set -eo pipefail
           if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
       - name: Report to Slack
-        if: failure()
+        if: ${{ failure() && env.ALLOW_SLACK_NOTIFICATIONS == 1 }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
@@ -227,7 +228,7 @@ jobs:
           set -eo pipefail
           if grep -q "ERROR:" result.txt; then exit 1; else exit 0; fi
       - name: Report to Slack
-        if: failure()
+        if: ${{ failure() && env.ALLOW_SLACK_NOTIFICATIONS == 1 }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL }}
