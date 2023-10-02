@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Superface Daily
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+paths:
+  /hello:
+    get:
+      summary: Get a greeting
+      description: |
+        Get a greeting text for the name specified in query parameter.
+      security:
+        - basicAuth: []
+      parameters:
+        - name: name
+          description: Your name
+          required: true
+          schema:
+            type: string
+          example: John
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+              greeting:
+                type: string
+          example:
+            greeting: Hello, John!
