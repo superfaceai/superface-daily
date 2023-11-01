@@ -118,6 +118,7 @@ jobs:
       SUPERFACE_DAILY_USERNAME: user
       SUPERFACE_DAILY_PASSWORD: pass
     steps:
+      - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -133,7 +134,9 @@ jobs:
         working-directory: superface
         run: npm install
       - name: Start server
-        run: node server.mjs &
+        run: |
+          npm install --global pm2
+          pm2 start server.mjs --name daily_server
       - name: Perform
         working-directory: superface
         run: superface execute superface-daily superface-daily/get-greeting | tee result.txt
@@ -191,7 +194,9 @@ jobs:
         working-directory: superface
         run: python -m pip install -r requirements.txt
       - name: Start server
-        run: node server.mjs &
+        run: |
+          npm install --global pm2
+          pm2 start server.mjs --name daily_server
       - name: Perform
         working-directory: superface
         run: superface execute superface-daily superface-daily/get-greeting python | tee result.txt
