@@ -76,7 +76,7 @@ jobs:
         run: brew install superfaceai/cli/superface
       - run: superface --version
       - run: superface whoami
-      - run: superface prepare ./openapi.yaml superface-daily
+      - run: superface prepare --force ./openapi.yaml superface-daily
       - run: superface new superface-daily "get a greeting" superface-daily/get-greeting
       - run: superface map superface-daily superface-daily/get-greeting
       - run: superface map superface-daily superface-daily/get-greeting python
