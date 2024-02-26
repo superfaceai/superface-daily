@@ -141,6 +141,7 @@ jobs:
         working-directory: superface
         run: superface execute superface-daily superface-daily/get-greeting | tee result.txt
       - name: Upload devlog dumps
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: javascript_devlog_dumps
@@ -201,6 +202,7 @@ jobs:
         working-directory: superface
         run: superface execute superface-daily superface-daily/get-greeting python | tee result.txt
       - name: Upload devlog dumps
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: python_devlog_dumps
